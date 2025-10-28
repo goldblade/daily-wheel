@@ -66,23 +66,27 @@
     const spinBtn = document.getElementById('spinBtn');
     const winnerDisplay = document.getElementById('winner');
 
-    let names = JSON.parse(localStorage.getItem('names')) || [];
+    // Master list (persistent)
+    let masterNames = JSON.parse(localStorage.getItem('masterNames')) || [];
+    // Session list (temporary for daily spin)
+    let names = [...masterNames];
     let spinning = false;
 
-    function saveNames() {
-      localStorage.setItem('names', JSON.stringify(names));
+    function saveMasterNames() {
+      localStorage.setItem('masterNames', JSON.stringify(masterNames));
     }
 
     function renderNames() {
       nameList.innerHTML = '';
-      names.forEach((name, index) => {
+      masterNames.forEach((name, index) => {
         const li = document.createElement('li');
         li.textContent = name;
         const removeBtn = document.createElement('button');
         removeBtn.textContent = '❌';
         removeBtn.onclick = () => {
-          names.splice(index, 1);
-          saveNames();
+          masterNames.splice(index, 1);
+          saveMasterNames();
+          names = [...masterNames];
           drawWheel();
           renderNames();
         };
@@ -103,7 +107,7 @@
         ctx.fillStyle = '#333';
         ctx.font = '20px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Add names to start', 200, 210);
+        ctx.fillText('All done! Refresh to reset.', 200, 210);
         return;
       }
 
@@ -133,7 +137,7 @@
 
       const randomIndex = Math.floor(Math.random() * names.length);
       const segmentAngle = 360 / names.length;
-      const randomAngle = 360 * 5 + (360 - randomIndex * segmentAngle - segmentAngle / 2); // spin 5x + land on winner
+      const randomAngle = 360 * 5 + (360 - randomIndex * segmentAngle - segmentAngle / 2);
 
       wheel.style.transition = 'transform 4s cubic-bezier(0.25, 0.1, 0.25, 1)';
       wheel.style.transform = `rotate(${randomAngle}deg)`;
@@ -142,10 +146,8 @@
         const winner = names[randomIndex];
         winnerDisplay.textContent = `🎉 Winner: ${winner}! 🎉`;
 
-        // Remove winner
+        // Remove only for this session
         names.splice(randomIndex, 1);
-        saveNames();
-        renderNames();
         drawWheel();
 
         spinning = false;
@@ -154,9 +156,10 @@
 
     addBtn.onclick = () => {
       const name = nameInput.value.trim();
-      if (name && !names.includes(name)) {
-        names.push(name);
-        saveNames();
+      if (name && !masterNames.includes(name)) {
+        masterNames.push(name);
+        saveMasterNames();
+        names = [...masterNames];
         nameInput.value = '';
         drawWheel();
         renderNames();
@@ -164,8 +167,9 @@
     };
 
     clearBtn.onclick = () => {
+      masterNames = [];
+      saveMasterNames();
       names = [];
-      saveNames();
       renderNames();
       drawWheel();
       winnerDisplay.textContent = '';
