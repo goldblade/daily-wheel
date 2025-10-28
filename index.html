@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,6 +16,7 @@
     canvas {
       margin-top: 20px;
       border-radius: 50%;
+      transition: transform 4s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
 
     input, button {
@@ -67,6 +67,7 @@
     const winnerDisplay = document.getElementById('winner');
 
     let names = JSON.parse(localStorage.getItem('names')) || [];
+    let spinning = false;
 
     function saveNames() {
       localStorage.setItem('names', JSON.stringify(names));
@@ -92,14 +93,28 @@
 
     function drawWheel() {
       const numNames = names.length;
-      const angle = (2 * Math.PI) / numNames;
       ctx.clearRect(0, 0, wheel.width, wheel.height);
+
+      if (numNames === 0) {
+        ctx.fillStyle = '#ccc';
+        ctx.beginPath();
+        ctx.arc(200, 200, 200, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillStyle = '#333';
+        ctx.font = '20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Add names to start', 200, 210);
+        return;
+      }
+
+      const angle = (2 * Math.PI) / numNames;
       names.forEach((name, i) => {
         ctx.beginPath();
         ctx.moveTo(200, 200);
         ctx.fillStyle = `hsl(${(i * 360) / numNames}, 80%, 60%)`;
         ctx.arc(200, 200, 200, i * angle, (i + 1) * angle);
         ctx.fill();
+
         ctx.save();
         ctx.translate(200, 200);
         ctx.rotate(i * angle + angle / 2);
@@ -112,20 +127,29 @@
     }
 
     function spinWheel() {
-      if (names.length === 0) return;
-      const randomIndex = Math.floor(Math.random() * names.length);
-      const randomAngle = (360 / names.length) * randomIndex + 720 + Math.random() * 360;
+      if (spinning || names.length === 0) return;
+      spinning = true;
+      winnerDisplay.textContent = '';
 
-      let rotation = 0;
-      const spin = setInterval(() => {
-        rotation += 10;
-        wheel.style.transform = `rotate(${rotation}deg)`;
-        if (rotation >= randomAngle) {
-          clearInterval(spin);
-          const winner = names[randomIndex];
-          winnerDisplay.textContent = `🎉 Winner: ${winner}! 🎉`;
-        }
-      }, 10);
+      const randomIndex = Math.floor(Math.random() * names.length);
+      const segmentAngle = 360 / names.length;
+      const randomAngle = 360 * 5 + (360 - randomIndex * segmentAngle - segmentAngle / 2); // spin 5x + land on winner
+
+      wheel.style.transition = 'transform 4s cubic-bezier(0.25, 0.1, 0.25, 1)';
+      wheel.style.transform = `rotate(${randomAngle}deg)`;
+
+      setTimeout(() => {
+        const winner = names[randomIndex];
+        winnerDisplay.textContent = `🎉 Winner: ${winner}! 🎉`;
+
+        // Remove winner
+        names.splice(randomIndex, 1);
+        saveNames();
+        renderNames();
+        drawWheel();
+
+        spinning = false;
+      }, 4000);
     }
 
     addBtn.onclick = () => {
