@@ -1,0 +1,156 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Random Wheel</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      text-align: center;
+      background: #f9fafb;
+      margin: 0;
+      padding: 20px;
+    }
+
+    canvas {
+      margin-top: 20px;
+      border-radius: 50%;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      margin: 5px 0;
+    }
+
+    .winner {
+      font-size: 22px;
+      margin-top: 20px;
+      color: green;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎡 Daily Random Wheel</h1>
+
+  <input type="text" id="nameInput" placeholder="Enter name" />
+  <button id="addBtn">Add</button>
+  <button id="clearBtn">Clear All</button>
+
+  <ul id="nameList"></ul>
+
+  <canvas id="wheel" width="400" height="400"></canvas>
+  <button id="spinBtn">Spin!</button>
+
+  <div class="winner" id="winner"></div>
+
+  <script>
+    const nameInput = document.getElementById('nameInput');
+    const addBtn = document.getElementById('addBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const nameList = document.getElementById('nameList');
+    const wheel = document.getElementById('wheel');
+    const ctx = wheel.getContext('2d');
+    const spinBtn = document.getElementById('spinBtn');
+    const winnerDisplay = document.getElementById('winner');
+
+    let names = JSON.parse(localStorage.getItem('names')) || [];
+
+    function saveNames() {
+      localStorage.setItem('names', JSON.stringify(names));
+    }
+
+    function renderNames() {
+      nameList.innerHTML = '';
+      names.forEach((name, index) => {
+        const li = document.createElement('li');
+        li.textContent = name;
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = '❌';
+        removeBtn.onclick = () => {
+          names.splice(index, 1);
+          saveNames();
+          drawWheel();
+          renderNames();
+        };
+        li.appendChild(removeBtn);
+        nameList.appendChild(li);
+      });
+    }
+
+    function drawWheel() {
+      const numNames = names.length;
+      const angle = (2 * Math.PI) / numNames;
+      ctx.clearRect(0, 0, wheel.width, wheel.height);
+      names.forEach((name, i) => {
+        ctx.beginPath();
+        ctx.moveTo(200, 200);
+        ctx.fillStyle = `hsl(${(i * 360) / numNames}, 80%, 60%)`;
+        ctx.arc(200, 200, 200, i * angle, (i + 1) * angle);
+        ctx.fill();
+        ctx.save();
+        ctx.translate(200, 200);
+        ctx.rotate(i * angle + angle / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px sans-serif';
+        ctx.fillText(name, 180, 5);
+        ctx.restore();
+      });
+    }
+
+    function spinWheel() {
+      if (names.length === 0) return;
+      const randomIndex = Math.floor(Math.random() * names.length);
+      const randomAngle = (360 / names.length) * randomIndex + 720 + Math.random() * 360;
+
+      let rotation = 0;
+      const spin = setInterval(() => {
+        rotation += 10;
+        wheel.style.transform = `rotate(${rotation}deg)`;
+        if (rotation >= randomAngle) {
+          clearInterval(spin);
+          const winner = names[randomIndex];
+          winnerDisplay.textContent = `🎉 Winner: ${winner}! 🎉`;
+        }
+      }, 10);
+    }
+
+    addBtn.onclick = () => {
+      const name = nameInput.value.trim();
+      if (name && !names.includes(name)) {
+        names.push(name);
+        saveNames();
+        nameInput.value = '';
+        drawWheel();
+        renderNames();
+      }
+    };
+
+    clearBtn.onclick = () => {
+      names = [];
+      saveNames();
+      renderNames();
+      drawWheel();
+      winnerDisplay.textContent = '';
+    };
+
+    spinBtn.onclick = spinWheel;
+
+    renderNames();
+    drawWheel();
+  </script>
+</body>
+</html>
